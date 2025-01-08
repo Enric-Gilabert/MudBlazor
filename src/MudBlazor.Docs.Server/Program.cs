@@ -1,19 +1,25 @@
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using MudBlazor.Docs.Extensions;
+﻿using MudBlazor.Docs.Extensions;
+using MudBlazor.Docs.Models;
 using MudBlazor.Docs.Services;
 using MudBlazor.Docs.Services.Notifications;
-using MudBlazor.Examples.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddHttpClient<GitHubApiClient>();
 builder.Services.TryAddDocsViewServices();
+builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddScoped(sp =>
+{
+    var context = sp.GetRequiredService<IHttpContextAccessor>().HttpContext;
+    var client = new HttpClient { BaseAddress = new Uri($"{context!.Request.Scheme}://{context.Request.Host}{context.Request.PathBase}") };
+
+    return client;
+});
 
 var app = builder.Build();
 
@@ -31,16 +37,19 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+app.MapControllers();
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
 
 using (var scope = app.Services.CreateScope())
 {
     var notificationService = scope.ServiceProvider.GetService<INotificationService>();
-    if (notificationService is InMemoryNotificationService inmemoryService)
+    if (notificationService is InMemoryNotificationService inMemoryService)
     {
-        inmemoryService.Preload();
+        inMemoryService.Preload();
     }
+    // Warm up the documentation
+    ApiDocumentation.GetType("MudAlert");
 }
 
 app.Run();

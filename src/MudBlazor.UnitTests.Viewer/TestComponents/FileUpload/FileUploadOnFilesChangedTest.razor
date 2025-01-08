@@ -1,0 +1,18 @@
+﻿<MudFileUpload T="IBrowserFile" OnFilesChanged="UploadFiles" >
+    <ActivatorContent>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.CloudUpload">
+            Upload using OnFilesChanged
+        </MudButton>
+    </ActivatorContent>
+</MudFileUpload>
+
+@code {
+    public IBrowserFile? File { get; private set; }
+
+    private void UploadFiles(InputFileChangeEventArgs args)
+    {
+        File = args.File;
+    }
+}

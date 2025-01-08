@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 
+#nullable enable
 namespace MudBlazor
 {
     public partial class MudDynamicTabs : MudTabs
@@ -12,7 +13,7 @@ namespace MudBlazor
         public string AddTabIcon { get; set; } = Icons.Material.Filled.Add;
 
         /// <summary>
-        /// the icon used of the close button
+        /// The icon used for the close button
         /// </summary>
         [Parameter]
         [Category(CategoryTypes.Tabs.Appearance)]
@@ -24,7 +25,7 @@ namespace MudBlazor
         [Parameter] public EventCallback AddTab { get; set; }
 
         /// <summary>
-        /// The callback, when the a close button has been clicked
+        /// The callback, when the close button has been clicked
         /// </summary>
         [Parameter] public EventCallback<MudTabPanel> CloseTab { get; set; }
 

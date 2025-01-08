@@ -4,61 +4,103 @@
 
 using Microsoft.AspNetCore.Components;
 using MudBlazor.Utilities;
-using MudBlazor.Extensions;
 
 namespace MudBlazor;
 
+#nullable enable
+
+/// <summary>
+/// A component for aligning child items horizontally or vertically.
+/// </summary>
 public partial class MudStack : MudComponentBase
 {
     protected string Classname =>
-    new CssBuilder("d-flex")
-      .AddClass($"flex-{(Row ? "row" : "column")}{(Reverse ? "-reverse" : string.Empty)}")
-      .AddClass($"justify-{Justify?.ToDescriptionString()}", Justify != null)
-      .AddClass($"align-{AlignItems?.ToDescriptionString()}", AlignItems != null)
-      .AddClass($"gap-{Spacing}")
-      .AddClass(Class)
-    .Build();
+        new CssBuilder("d-flex")
+            .AddClass($"flex-{(Row ? "row" : "column")}{(Reverse ? "-reverse" : string.Empty)}")
+            .AddClass($"justify-{Justify?.ToDescriptionString()}", Justify is not null)
+            .AddClass($"align-{AlignItems?.ToDescriptionString()}", AlignItems is not null)
+            .AddClass($"flex-{Wrap?.ToDescriptionString()}", Wrap is not null)
+            .AddClass($"gap-{Spacing}", Spacing >= 0)
+            .AddClass($"flex-grow-{StretchItems?.ToDescriptionString()}", StretchItems is not null and not MudBlazor.StretchItems.None)
+            .AddClass(Class)
+            .Build();
 
     /// <summary>
-    /// If true, items will be placed horizontally in a row instead of vertically.
+    /// Displays items horizontally.
     /// </summary>
+    /// <remarks>
+    /// Defaults to <see cref="MudGlobal.StackDefaults.Row"/>.  
+    /// When <c>true</c>, items will be displayed horizontally.  When <c>false</c>, items are displayed vertically.
+    /// </remarks>
     [Parameter]
     [Category(CategoryTypes.Stack.Behavior)]
-    public bool Row { get; set; }
+    public bool Row { get; set; } = MudGlobal.StackDefaults.Row;
 
     /// <summary>
-    /// Reverses the order of its items.
+    /// Reverses the order of items.
     /// </summary>
+    /// <remarks>
+    /// Defaults to <see cref="MudGlobal.StackDefaults.Reverse"/>.  
+    /// When <c>true</c>, items will be reversed.
+    /// </remarks>
     [Parameter]
     [Category(CategoryTypes.Stack.Behavior)]
-    public bool Reverse { get; set; }
+    public bool Reverse { get; set; } = MudGlobal.StackDefaults.Reverse;
 
     /// <summary>
-    /// Defines the spacing between its items.
+    /// The gap between items in increments of <c>4px</c>.
     /// </summary>
+    /// <remarks>
+    /// Defaults to <see cref="MudGlobal.StackDefaults.Spacing"/>.  Maximum is <c>20</c> (<c>80px</c>).
+    /// </remarks>
     [Parameter]
     [Category(CategoryTypes.Stack.Behavior)]
-    public int Spacing { get; set; } = 3;
+    public int Spacing { get; set; } = MudGlobal.StackDefaults.Spacing;
 
     /// <summary>
-    /// Defines the spacing between its items.
+    /// Defines the distribution of child items.
     /// </summary>
+    /// <remarks>
+    /// Defaults to <c>null</c>.
+    /// </remarks>
     [Parameter]
     [Category(CategoryTypes.Stack.Behavior)]
     public Justify? Justify { get; set; }
 
     /// <summary>
-    /// Defines the spacing between its items.
+    /// Defines the vertical alignment of child items.
     /// </summary>
+    /// <remarks>
+    /// Defaults to <c>null</c>.
+    /// </remarks>
     [Parameter]
     [Category(CategoryTypes.Stack.Behavior)]
     public AlignItems? AlignItems { get; set; }
 
     /// <summary>
-    /// Child content of the component.
+    /// Defines the stretching behaviour of children along the main axis within a <see cref="MudStack"/> component.
+    /// </summary>
+    /// <remarks>
+    /// Defaults to <c>null</c>.  
+    /// </remarks>
+    [Parameter]
+    [Category(CategoryTypes.Stack.Behavior)]
+    public StretchItems? StretchItems { get; set; }
+
+    /// <summary>
+    /// Controls how items are wrapped.
+    /// </summary>
+    /// <remarks>
+    /// Defaults to <c>null</c>.
+    /// </remarks>
+    [Parameter]
+    [Category(CategoryTypes.Stack.Behavior)]
+    public Wrap? Wrap { get; set; }
+
+    /// <summary>
+    /// The content within this component.
     /// </summary>
     [Parameter]
     [Category(CategoryTypes.Stack.Behavior)]
-    public RenderFragment ChildContent { get; set; }
+    public RenderFragment? ChildContent { get; set; }
 }
-

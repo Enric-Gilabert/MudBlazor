@@ -1,47 +1,56 @@
 ﻿// Copyright (c) Alessandro Ghidini. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 // Changes and improvements Copyright (c) The MudBlazor Team
-
-using System;
 using Microsoft.AspNetCore.Components;
-using static System.String;
+using MudBlazor.Components.Snackbar;
 
 namespace MudBlazor
 {
+#nullable enable
     public partial class MudSnackbarElement : MudComponentBase, IDisposable
     {
+        private RenderFragment? _css;
+
         [Parameter]
-        public Snackbar Snackbar { get; set; }
+        public Snackbar? Snackbar { get; set; }
 
         /// <summary>
         /// Custom close icon.
         /// </summary>
-        [Parameter] public string CloseIcon { get; set; } = Icons.Material.Filled.Close;
+        [Parameter]
+        public string CloseIcon { get; set; } = Icons.Material.Filled.Close;
 
-        protected RenderFragment Css;
+        // appearance
+        private string? Action => Snackbar?.State.Options.Action;
+        private Color ActionColor => Snackbar?.State.Options.ActionColor ?? Color.Default;
+        private Variant ActionVariant => Snackbar?.State.Options.ActionVariant ?? Snackbar?.State.Options.SnackbarVariant ?? Variant.Text;
+        private string AnimationStyle => Snackbar?.State.AnimationStyle + Style;
+        private string? SnackbarClass => Snackbar?.State.SnackbarClass;
+        private bool ShowActionButton => Snackbar?.State.ShowActionButton == true;
+        private bool ShowCloseIcon => Snackbar?.State.ShowCloseIcon == true;
 
-        protected string AnimationStyle => Snackbar?.State.AnimationStyle + Style;
-        protected string SnackbarClass => Snackbar?.State.SnackbarClass;
+        // icon
+        private bool HideIcon => Snackbar?.State.HideIcon == true;
+        private string? Icon => Snackbar?.State.Icon;
+        private Color IconColor => Snackbar?.State.Options.IconColor ?? Color.Inherit;
+        private Size IconSize => Snackbar?.State.Options.IconSize ?? Size.Medium;
 
-        protected string Message => Snackbar?.Message;
+        // behavior
+        private void ActionClicked() => Snackbar?.Clicked(false);
+        private void CloseIconClicked() => Snackbar?.Clicked(true);
+        private SnackbarMessage? Message => Snackbar?.SnackbarMessage;
 
-        protected string Action => Snackbar?.State.Options.Action;
-        protected Color ActionColor => Snackbar?.State.Options.ActionColor ?? Color.Default;
-        protected Variant ActionVariant => Snackbar?.State.Options.ActionVariant ?? Snackbar?.State.Options.SnackbarVariant ?? Variant.Text;
-
-        protected bool ShowActionButton => Snackbar?.State.ShowActionButton == true;
-        protected bool ShowCloseIcon => Snackbar?.State.ShowCloseIcon == true;
-
-        protected bool HideIcon => Snackbar?.State.HideIcon == true;
-        protected string Icon => Snackbar?.State.Icon;
-
-        protected void ActionClicked() => Snackbar?.Clicked(false);
-        protected void CloseIconClicked() => Snackbar?.Clicked(true);
-
-        protected void SnackbarClicked()
+        private void SnackbarClicked()
         {
             if (!ShowActionButton)
+            {
                 Snackbar?.Clicked(false);
+            }
+        }
+
+        private void SnackbarUpdated()
+        {
+            InvokeAsync(StateHasChanged);
         }
 
         protected override void OnInitialized()
@@ -51,11 +60,11 @@ namespace MudBlazor
                 Snackbar.OnUpdate += SnackbarUpdated;
                 Snackbar.Init();
 
-                Css = builder =>
+                _css = builder =>
                 {
                     var transitionClass = Snackbar.State.TransitionClass;
 
-                    if (!IsNullOrWhiteSpace(transitionClass))
+                    if (!string.IsNullOrWhiteSpace(transitionClass))
                     {
                         builder.OpenElement(1, "style");
                         builder.AddContent(2, transitionClass);
@@ -65,15 +74,24 @@ namespace MudBlazor
             }
         }
 
-        private void SnackbarUpdated()
+        protected void InteractionStartHandler()
         {
-            InvokeAsync(StateHasChanged);
+            // Pause snackbar transitions while the user is interacting through hover or touch.
+            Snackbar?.PauseTransitions(true);
+        }
+
+        protected void InteractionEndHandler()
+        {
+            // The user is done and we can now resume transitions.
+            Snackbar?.PauseTransitions(false);
         }
 
         public void Dispose()
         {
             if (Snackbar != null)
+            {
                 Snackbar.OnUpdate -= SnackbarUpdated;
+            }
         }
     }
 }

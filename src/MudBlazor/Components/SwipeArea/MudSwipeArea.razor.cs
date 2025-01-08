@@ -1,68 +1,126 @@
-﻿using System;
-using Microsoft.AspNetCore.Components;
+﻿using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
+using MudBlazor.Utilities;
 
 namespace MudBlazor
 {
+#nullable enable
     public partial class MudSwipeArea : MudComponentBase
     {
+        private static readonly string[] _preventDefaultEventNames = ["onpointerdown", "onpointerup", "onpointercancel"];
+
+        private double? _swipeDelta;
+        internal int[]? _listenerIds;
         internal double? _xDown, _yDown;
+        private bool _preventDefaultChanged;
+        private ElementReference _componentRef;
 
         [Parameter]
         [Category(CategoryTypes.SwipeArea.Behavior)]
-        public RenderFragment ChildContent { get; set; }
+        public RenderFragment? ChildContent { get; set; }
 
         [Parameter]
         [Category(CategoryTypes.SwipeArea.Behavior)]
-        public Action<SwipeDirection> OnSwipe { get; set; }
+        public EventCallback<SwipeEventArgs> OnSwipeEnd { get; set; }
 
-        private void OnTouchStart(TouchEventArgs arg)
+        /// <summary>
+        /// Swipe threshold in pixels. If SwipeDelta is below Sensitivity then OnSwipe is not called.
+        /// </summary>
+        [Parameter]
+        [Category(CategoryTypes.SwipeArea.Behavior)]
+        public int Sensitivity { get; set; } = 100;
+
+        /// <summary>
+        /// Prevents default behavior of the browser when swiping.
+        /// Usable especially when swiping up/down - this will prevent the whole page from scrolling up/down.
+        /// </summary>
+        [Parameter]
+        [Category(CategoryTypes.SwipeArea.Behavior)]
+        public bool PreventDefault { get; set; }
+
+        protected string Classname =>
+            new CssBuilder("mud-swipearea")
+                .AddClass(Class)
+                .Build();
+
+        /// <inheritdoc />
+        public override async Task SetParametersAsync(ParameterView parameters)
         {
-            _xDown = arg.Touches[0].ClientX;
-            _yDown = arg.Touches[0].ClientY;
+            var preventDefault = parameters.GetValueOrDefault<bool>(nameof(PreventDefault));
+            if (preventDefault != PreventDefault)
+            {
+                _preventDefaultChanged = true;
+            }
+
+            await base.SetParametersAsync(parameters);
         }
 
-        internal void OnTouchEnd(TouchEventArgs arg)
+        private async Task SetPreventDefaultInternal(bool value)
         {
-            if (_xDown == null || _yDown == null)
+            if (value)
+            {
+                _listenerIds = await _componentRef.AddDefaultPreventingHandlers(_preventDefaultEventNames);
+            }
+            else
+            {
+                if (_listenerIds != null)
+                {
+                    await _componentRef.RemoveDefaultPreventingHandlers(_preventDefaultEventNames, _listenerIds);
+                    _listenerIds = null;
+                }
+            }
+        }
+
+        /// <inheritdoc />
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            if (_preventDefaultChanged)
+            {
+                _preventDefaultChanged = false;
+                await SetPreventDefaultInternal(PreventDefault);
+            }
+        }
+
+        internal void OnPointerDown(PointerEventArgs arg)
+        {
+            _xDown = arg.ClientX;
+            _yDown = arg.ClientY;
+        }
+
+        internal async Task OnPointerUp(PointerEventArgs arg)
+        {
+            if (_xDown is null || _yDown is null)
+            {
                 return;
+            }
 
-            var xDiff = _xDown.Value - arg.ChangedTouches[0].ClientX;
-            var yDiff = _yDown.Value - arg.ChangedTouches[0].ClientY;
+            var xDiff = _xDown.Value - arg.ClientX;
+            var yDiff = _yDown.Value - arg.ClientY;
 
-            if (Math.Abs(xDiff) < 100 && Math.Abs(yDiff) < 100)
+            if (Math.Abs(xDiff) < Sensitivity && Math.Abs(yDiff) < Sensitivity)
             {
                 _xDown = _yDown = null;
                 return;
             }
 
+            var swipeDirection = Math.Abs(xDiff) > Math.Abs(yDiff) ?
+                xDiff > 0 ? SwipeDirection.RightToLeft : SwipeDirection.LeftToRight :
+                yDiff > 0 ? SwipeDirection.BottomToTop : SwipeDirection.TopToBottom;
+
             if (Math.Abs(xDiff) > Math.Abs(yDiff))
             {
-                if (xDiff > 0)
-                {
-                    InvokeAsync(() => OnSwipe(SwipeDirection.RightToLeft));
-                }
-                else
-                {
-                    InvokeAsync(() => OnSwipe(SwipeDirection.LeftToRight));
-                }
+                _swipeDelta = xDiff;
             }
             else
             {
-                if (yDiff > 0)
-                {
-                    InvokeAsync(() => OnSwipe(SwipeDirection.BottomToTop));
-                }
-                else
-                {
-                    InvokeAsync(() => OnSwipe(SwipeDirection.TopToBottom));
-                }
+                _swipeDelta = yDiff;
             }
 
+            await OnSwipeEnd.InvokeAsync(new SwipeEventArgs(arg, swipeDirection, _swipeDelta, this));
             _xDown = _yDown = null;
         }
 
-        internal void OnTouchCancel(TouchEventArgs arg)
+        internal void OnPointerCancel(PointerEventArgs arg)
         {
             _xDown = _yDown = null;
         }

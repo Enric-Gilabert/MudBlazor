@@ -7,7 +7,9 @@ using System.Threading.Tasks;
 using Bunit;
 using FluentAssertions;
 using Microsoft.AspNetCore.Components.Web;
+using MudBlazor.Interfaces;
 using MudBlazor.UnitTests.TestComponents;
+using MudBlazor.UnitTests.TestComponents.Chip;
 using NUnit.Framework;
 
 namespace MudBlazor.UnitTests.Components
@@ -23,13 +25,12 @@ namespace MudBlazor.UnitTests.Components
         {
             var comp = Context.RenderComponent<ChipOnClickTest>();
             // print the generated html
-            //Console.WriteLine(comp.Markup);
-            
+
             // chip should have mud-clickable and mud-ripple classes
             var chip = comp.Find("div.mud-chip");
             chip.ClassName.Should().Contain("mud-clickable");
             chip.ClassName.Should().Contain("mud-ripple");
-            
+
             // click on chip
             chip.Click();
 
@@ -45,13 +46,12 @@ namespace MudBlazor.UnitTests.Components
         {
             var comp = Context.RenderComponent<ChipOnClickTest>();
             // print the generated html
-            //Console.WriteLine(comp.Markup);
-            
+
             // chip should have mud-clickable and mud-ripple classes
             var chip = comp.Find("div.mud-chip");
             chip.ClassName.Should().Contain("mud-clickable");
             chip.ClassName.Should().Contain("mud-ripple");
-            
+
             // click on close button
             comp.Find("button.mud-chip-close-button").Click();
 
@@ -63,17 +63,40 @@ namespace MudBlazor.UnitTests.Components
         public async Task Chip_Link_Test()
         {
             var comp = Context.RenderComponent<ChipLinkTest>();
-            var chip = comp.FindComponent<MudChip>();
-            
-            await comp.InvokeAsync(() => chip.Instance.ForceRerender());
-            await comp.InvokeAsync(() => chip.Instance.OnClickHandler(new MouseEventArgs()));
+            var chip = comp.FindComponent<MudChip<string>>();
+
+            await comp.InvokeAsync(() => ((IMudStateHasChanged)chip.Instance).StateHasChanged());
+            await comp.InvokeAsync(() => chip.Instance.OnClickAsync(new MouseEventArgs()));
 
             comp.WaitForAssertion(() => comp.Find("#chip-click-test-expected-value").InnerHtml.Should().Be(""));
-#pragma warning disable BL0005
+#pragma warning disable BL0005 // Component parameter should not be set outside of its component.
             await comp.InvokeAsync(() => chip.Instance.Target = "_blank");
-            await comp.InvokeAsync(() => chip.Instance.OnClickHandler(new MouseEventArgs()));
+#pragma warning restore BL0005 // Component parameter should not be set outside of its component.
+            await comp.InvokeAsync(() => chip.Instance.OnClickAsync(new MouseEventArgs()));
 
             comp.WaitForAssertion(() => comp.Find("#chip-click-test-expected-value").InnerHtml.Should().Be(""));
+        }
+
+        /// <summary>
+        /// If href set on chip pointer cursor should be visible
+        /// </summary>
+        [Test]
+        public void Chip_Href_Cursor_Test()
+        {
+            var comp = Context.RenderComponent<ChipHrefCursorTest>();
+
+            // chip should have mud-clickable and mud-ripple classes
+            var chip = comp.Find("div.mud-chip");
+            chip.ClassName.Should().Contain("mud-clickable");
+            chip.ClassName.Should().Contain("mud-ripple");
+        }
+
+        [Test]
+        public void Chip_Should_Render_Avatar_Test()
+        {
+            var comp = Context.RenderComponent<ChipAvatarContentTest>();
+
+            comp.Find("div.mud-chip").InnerHtml.Should().Contain("mud-avatar");
         }
     }
 }

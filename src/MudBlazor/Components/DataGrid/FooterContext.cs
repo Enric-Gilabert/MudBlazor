@@ -4,39 +4,88 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace MudBlazor
 {
-    public class FooterContext<T>
+#nullable enable
+
+    /// <summary>
+    /// Represents the current state of a footer in a <see cref="MudDataGrid{T}"/>.
+    /// </summary>
+    /// <typeparam name="T">The kind of item being managed.</typeparam>
+    public class FooterContext<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>
     {
-        internal MudDataGrid<T> dataGrid;
+        private readonly MudDataGrid<T> _dataGrid;
+
+        /// <summary>
+        /// The items which apply to the footer.
+        /// </summary>
         public IEnumerable<T> Items
         {
             get
             {
-                return dataGrid.Items;
+                return _dataGrid.HasServerData
+                    ? _dataGrid.ServerItems
+                    : _dataGrid.FilteredItems;
             }
         }
-        public FooterActions Actions { get; internal set; }
-        public bool IsAllSelected
+
+        /// <summary>
+        /// The behaviors which can be performed on this footer.
+        /// </summary>
+        public FooterActions Actions { get; }
+
+        /// <summary>
+        /// Indicates whether all values are currently selected.
+        /// </summary>
+        public bool? IsAllSelected
         {
             get
             {
-                
-                if (dataGrid.Selection != null && Items != null)
+                if (_dataGrid.Selection is not null && (Items?.Any() ?? false))
                 {
-                    return dataGrid.Selection.Count == Items.Count();
+                    if (_dataGrid.Selection.Count == Items.Count())
+                    {
+                        return true;
+                    }
+
+                    if (_dataGrid.Selection.Count == 0)
+                    {
+                        return false;
+                    }
+
+                    return null;
                 }
 
                 return false;
             }
         }
 
+        /// <summary>
+        /// Creates a new instance.
+        /// </summary>
+        /// <param name="dataGrid">The <see cref="MudDataGrid{T}"/> containing this footer.</param>
+        public FooterContext(MudDataGrid<T> dataGrid)
+        {
+            _dataGrid = dataGrid;
+            Actions = new FooterActions
+            {
+                SetSelectAllAsync = x => _dataGrid.SetSelectAllAsync(x ?? false),
+            };
+        }
 
+        /// <summary>
+        /// Represents the actions which can be performed on the footer of <see cref="MudDataGrid{T}"/> columns.
+        /// </summary>
         public class FooterActions
         {
-            public Action<bool> SetSelectAll { get; internal set; }
+            /// <summary>
+            /// The function which selects all values.
+            /// </summary>
+            public required Func<bool?, Task> SetSelectAllAsync { get; init; }
         }
     }
 }

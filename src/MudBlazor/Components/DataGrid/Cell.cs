@@ -2,61 +2,48 @@
 // MudBlazor licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
-using System.Threading.Tasks;
 using MudBlazor.Utilities;
 
 namespace MudBlazor
 {
-    internal class Cell<T>
+#nullable enable
+    internal class Cell<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>
     {
         private readonly MudDataGrid<T> _dataGrid;
         private readonly Column<T> _column;
         internal T _item;
-        internal string valueString;
-        internal double valueNumber;
-        internal bool isEditing;
-        internal CellContext<T> cellContext;
+        internal string? _valueString;
+        internal double? _valueNumber;
+        internal bool _editing;
+        internal CellContext<T> _cellContext;
 
         #region Computed Properties
 
-        internal object ComputedValue
+        internal object? ComputedValue
         {
             get
             {
-                if (_item == null || _column.Field == null)
-                    return null;
+                return _column.CellContent(_item);
+            }
+        }
 
-                var property = _item.GetType().GetProperties().SingleOrDefault(x => x.Name == _column.Field);
-                return property.GetValue(_item);
-            }
-        }
-        internal string computedClass
-        {
-            get
-            {
-                return new CssBuilder(_column.CellClassFunc?.Invoke(_item))
-                    .AddClass(_column.CellClass)
-                    .AddClass("mud-table-cell")
-                    .AddClass("mud-table-cell-hide", _column.HideSmall)
-                    .AddClass($"edit-mode-cell", _dataGrid.EditMode == DataGridEditMode.Cell && _column.IsEditable)
-                    .Build();
-            }
-        }
-        internal string computedStyle
-        {
-            get
-            {
-                return new StyleBuilder()
-                    .AddStyle(_column.CellStyleFunc?.Invoke(_item))
-                    .AddStyle(_column.CellStyle)
-                    .Build();
-            }
-        }
+        internal string ComputedClass =>
+            new CssBuilder(_column.CellClassFunc?.Invoke(_item))
+                .AddClass(_column.CellClass)
+                .AddClass("mud-table-cell")
+                .AddClass("mud-table-cell-hide", _column.HideSmall)
+                .AddClass("sticky-left", _column.StickyLeft)
+                .AddClass("sticky-right", _column.StickyRight)
+                .AddClass($"edit-mode-cell", _dataGrid.EditMode == DataGridEditMode.Cell && _column.Editable)
+                .Build();
+
+        internal string ComputedStyle =>
+            new StyleBuilder()
+                .AddStyle(_column.CellStyleFunc?.Invoke(_item))
+                .AddStyle(_column.CellStyle)
+                .Build();
 
         #endregion
 
@@ -69,33 +56,21 @@ namespace MudBlazor
             OnStartedEditingItem();
 
             // Create the CellContext
-            cellContext = new CellContext<T>
-            {
-                selection = _dataGrid.Selection,
-                Item = _item,
-                Actions = new CellContext<T>.CellActions
-                {
-                    SetSelectedItem = async (x) => await _dataGrid.SetSelectedItemAsync(x, _item),
-                    StartEditingItem = async () => await _dataGrid.SetEditingItemAsync(_item),
-                    CancelEditingItem = async () => await _dataGrid.CancelEditingItemAsync(),
-                }
-            };
+            _cellContext = new CellContext<T>(_dataGrid, _item);
         }
 
         public async Task StringValueChangedAsync(string value)
         {
-            var property = _item.GetType().GetProperties().SingleOrDefault(x => x.Name == _column.Field);
-            property.SetValue(_item, value);
+            _column.SetProperty(_item, value);
 
             // If the edit mode is Cell, we update immediately.
             if (_dataGrid.EditMode == DataGridEditMode.Cell)
                 await _dataGrid.CommitItemChangesAsync(_item);
         }
 
-        public async Task NumberValueChangedAsync(double value)
+        public async Task NumberValueChangedAsync(double? value)
         {
-            var property = _item.GetType().GetProperties().SingleOrDefault(x => x.Name == _column.Field);
-            property.SetValue(_item, Convert.ChangeType(value, property.PropertyType));
+            _column.SetProperty(_item, value);
 
             // If the edit mode is Cell, we update immediately.
             if (_dataGrid.EditMode == DataGridEditMode.Cell)
@@ -104,16 +79,31 @@ namespace MudBlazor
 
         private void OnStartedEditingItem()
         {
+            if (ComputedValue is null)
+            {
+                return;
+            }
 
-            if (ComputedValue != null)
+            if (ComputedValue is JsonElement element)
             {
                 if (_column.dataType == typeof(string))
                 {
-                    valueString = (string)ComputedValue;
+                    _valueString = element.GetString();
                 }
                 else if (_column.isNumber)
                 {
-                    valueNumber = Convert.ToDouble(ComputedValue);
+                    _valueNumber = element.GetDouble();
+                }
+            }
+            else
+            {
+                if (_column.dataType == typeof(string))
+                {
+                    _valueString = (string)ComputedValue;
+                }
+                else if (_column.isNumber)
+                {
+                    _valueNumber = Convert.ToDouble(ComputedValue);
                 }
             }
         }

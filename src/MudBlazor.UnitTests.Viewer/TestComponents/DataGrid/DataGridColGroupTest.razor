@@ -1,20 +1,18 @@
-﻿@namespace MudBlazor.UnitTests.TestComponents
-
-<MudDataGrid Items="@_items" Filterable="true">
+﻿<MudDataGrid Items="@_items" Filterable="true">
     <ColGroup>
         <col />
         <col />
         <col />
     </ColGroup>
     <Columns>
-        <Column T="Model" Field="@nameof(Model.Name)" />
-        <Column T="Model" Field="@nameof(Model.Age)" />
-        <Column T="Model" Field="@nameof(Model.Status)" />
+        <PropertyColumn Property="x => x.Name" />
+        <PropertyColumn Property="x => x.Age" />
+        <PropertyColumn Property="x => x.Status" />
     </Columns>
 </MudDataGrid>
 
 @code {
-    private IEnumerable<Model> _items = new List<Model>()
+    private readonly IEnumerable<Model> _items = new List<Model>()
     {
         new Model("Sam", 56, Severity.Normal), 
         new Model("Alicia", 54, Severity.Info), 

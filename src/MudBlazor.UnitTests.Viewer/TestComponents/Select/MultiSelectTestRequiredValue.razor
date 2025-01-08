@@ -1,0 +1,40 @@
+﻿<MudPopoverProvider />
+
+<MudSelect @bind-Value="_value" Label="String Binding" MultiSelection="true" Required="true" Clearable="true">
+    <MudSelectItem Value="@("1")">1</MudSelectItem>
+    <MudSelectItem Value="@("2")">2</MudSelectItem>
+    <MudSelectItem Value="@("3")">3</MudSelectItem>
+</MudSelect>
+
+<MudSelect T="TestClass" Label="Object Binding" MultiSelection="true" Required="true" @bind-SelectedValues="_selectedRoles" Clearable="true">
+    @foreach(var role in _roles)
+    {
+        <MudSelectItem T="TestClass" Value=@role/>
+    }
+</MudSelect>
+
+@code {
+	public static string __description__ = "Multi-Select Required Should Recognize Values";
+
+    private string? _value = null;
+
+    private readonly List<TestClass> _roles = [];
+    private IEnumerable<TestClass> _selectedRoles = new List<TestClass>();
+    
+	protected override void OnInitialized()
+    {
+        _roles.Add(new TestClass { Name = "Admin", NameTranslated = "Administrator" });
+        _roles.Add(new TestClass { Name = "Customer", NameTranslated = "Kunde" });
+
+        base.OnInitialized();
+    }
+
+    public class TestClass
+    {
+        public required string Name { get; set; }
+
+        public required string NameTranslated { get; set; }
+
+        public override string ToString() => Name;
+    }
+}
